@@ -87,7 +87,6 @@
         <!-- Las manchas térmicas se pintan aquí -->
         <canvas id="heatmapCanvas"></canvas>
     </div>
-
     <script>
         const SUPABASE_URL = 'https://tbhyzovkwpetnpyumblb.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRiaHl6b3Zrd3BldG5weXVtYmxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMDUxOTksImV4cCI6MjEwMzU4MTE5OX0._P132KIv3H6q7bYFXxrnfcyEoSUNabfnqjovO9SinLU'; 
@@ -104,8 +103,8 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             try {
-                // Solicitar URL y coordenadas simultáneamente
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/heatmap_data?select=url,coordinates`, {
+                // 1. Agregamos screen_width a la consulta SQL
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/heatmap_data?select=url,screen_width,coordinates`, {
                     headers: {
                         'apikey': SUPABASE_KEY,
                         'Authorization': `Bearer ${SUPABASE_KEY}`
@@ -114,21 +113,21 @@
                 
                 const data = await response.json();
                 
-                // Extraer la primera URL disponible e inyectarla en el iframe
                 if(data.length > 0 && data[0].url) {
                     const targetUrl = data[0].url;
                     urlInput.value = targetUrl;
-                    
-                    // Evitar recargar el iframe entero si la URL es la misma
-                    if(iframe.src !== targetUrl) {
-                        iframe.src = targetUrl;
-                    }
+                    if(iframe.src !== targetUrl) iframe.src = targetUrl;
                 }
 
                 data.forEach(session => {
-                    if (session.coordinates) {
+                    if (session.coordinates && session.screen_width) {
+                        // 2. Fórmula mágica: Diferencia de anchos dividida entre 2
+                        const offsetX = (canvas.width - session.screen_width) / 2;
+
                         session.coordinates.forEach(point => {
-                            drawThermalPoint(ctx, point.x, point.y, point.type);
+                            // 3. Aplicamos la compensación a la coordenada X original
+                            const adjustedX = point.x + offsetX;
+                            drawThermalPoint(ctx, adjustedX, point.y, point.type);
                         });
                     }
                 });
@@ -155,6 +154,6 @@
             ctx.fillStyle = gradient;
             ctx.fill();
         }
-    </script>
+    </script>    
 </body>
 </html>
