@@ -12,11 +12,26 @@
             margin: 0; 
             padding: 24px; 
         }
-        .header-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+        .header-controls { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            gap: 15px; 
+        }
+        .controls-right { 
+            display: flex; 
+            gap: 10px; 
+            align-items: center; 
+            width: 60%; 
+        }
+        input[type="url"] { 
+            flex: 1; 
+            padding: 10px; 
+            border-radius: 8px; 
+            border: 1px solid #333; 
+            background: #1e293b; 
+            color: #fff; 
         }
         button { 
             background: #38bdf8; 
@@ -26,55 +41,71 @@
             border-radius: 8px; 
             cursor: pointer; 
             font-weight: bold; 
-            transition: opacity 0.2s;
         }
         button:hover { opacity: 0.8; }
+        
         .canvas-container {
             position: relative;
-            background: #1e293b;
             border: 1px solid rgba(148, 163, 184, 0.4);
             border-radius: 12px;
             overflow: hidden;
             width: 100%;
-            height: 800px; /* Simula la altura del viewport estándar */
+            height: 850px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            pointer-events: none;
+        iframe { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 1; 
+            border: none; 
+            background: #fff; 
+        }
+        canvas { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 2; 
+            pointer-events: none; /* Permite hacer scroll sobre el iframe inferior */
         }
     </style>
 </head>
 <body>
     <div class="header-controls">
         <h2>Panel de Mapas de Calor</h2>
-        <button onclick="renderHeatmap()">Renderizar Sesiones</button>
+        <div class="controls-right">
+            <input type="url" id="targetUrl" placeholder="URL cargada dinámicamente..." readonly>
+            <button onclick="renderHeatmap()">Cargar y Renderizar</button>
+        </div>
     </div>
     
     <div class="canvas-container" id="canvasContainer">
-        <!-- El canvas actúa como el cristal donde se pintan las manchas -->
+        <!-- El sitio web real se carga aquí -->
+        <iframe id="backgroundIframe" src="about:blank"></iframe>
+        <!-- Las manchas térmicas se pintan aquí -->
         <canvas id="heatmapCanvas"></canvas>
     </div>
 
     <script>
         const SUPABASE_URL = 'https://tbhyzovkwpetnpyumblb.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRiaHl6b3Zrd3BldG5weXVtYmxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMDUxOTksImV4cCI6MjEwMzU4MTE5OX0._P132KIv3H6q7bYFXxrnfcyEoSUNabfnqjovO9SinLU'; 
+        const SUPABASE_KEY = 'TU_LLAVE_ANON_AQUI'; 
 
         async function renderHeatmap() {
             const canvas = document.getElementById('heatmapCanvas');
             const ctx = canvas.getContext('2d');
             const container = document.getElementById('canvasContainer');
+            const iframe = document.getElementById('backgroundIframe');
+            const urlInput = document.getElementById('targetUrl');
 
-            // Ajustar resolución del canvas al contenedor físico
             canvas.width = container.clientWidth;
             canvas.height = container.clientHeight;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             try {
-                // Solicitar únicamente la columna de coordenadas para optimizar rendimiento
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/heatmap_data?select=coordinates`, {
+                // Solicitar URL y coordenadas simultáneamente
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/heatmap_data?select=url,coordinates`, {
                     headers: {
                         'apikey': SUPABASE_KEY,
                         'Authorization': `Bearer ${SUPABASE_KEY}`
@@ -82,8 +113,18 @@
                 });
                 
                 const data = await response.json();
+                
+                // Extraer la primera URL disponible e inyectarla en el iframe
+                if(data.length > 0 && data[0].url) {
+                    const targetUrl = data[0].url;
+                    urlInput.value = targetUrl;
+                    
+                    // Evitar recargar el iframe entero si la URL es la misma
+                    if(iframe.src !== targetUrl) {
+                        iframe.src = targetUrl;
+                    }
+                }
 
-                // Iterar sobre cada sesión y cada coordenada
                 data.forEach(session => {
                     if (session.coordinates) {
                         session.coordinates.forEach(point => {
@@ -102,12 +143,10 @@
             const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
 
             if (type === 'click') {
-                // Impactos de clic en rojo concentrado
                 gradient.addColorStop(0, 'rgba(239, 68, 68, 0.9)');
                 gradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
             } else {
-                // Rastro de movimiento en azul suave
-                gradient.addColorStop(0, 'rgba(56, 189, 248, 0.05)');
+                gradient.addColorStop(0, 'rgba(56, 189, 248, 0.08)');
                 gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
             }
 
