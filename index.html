@@ -45,30 +45,28 @@
         button:hover { opacity: 0.8; }
         
         .canvas-container {
-            position: relative;
-            border: 1px solid rgba(148, 163, 184, 0.4);
-            border-radius: 12px;
-            overflow: hidden;
             width: 100%;
             height: 850px;
+            overflow-y: auto; /* El scroll ahora lo hace este contenedor */
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .scroll-wrapper {
+            position: relative;
+            width: 100%;
+            height: 3500px; /* Altura estimada para abarcar un CV largo */
         }
         iframe { 
             position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            z-index: 1; 
-            border: none; 
-            background: #fff; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            z-index: 1; border: none; background: #fff; 
         }
         canvas { 
             position: absolute; 
-            top: 0; 
-            left: 0; 
-            z-index: 2; 
-            pointer-events: none; /* Permite hacer scroll sobre el iframe inferior */
+            top: 0; left: 0; 
+            z-index: 2; pointer-events: none; 
         }
     </style>
 </head>
@@ -82,10 +80,12 @@
     </div>
     
     <div class="canvas-container" id="canvasContainer">
-        <!-- El sitio web real se carga aquí -->
-        <iframe id="backgroundIframe" src="about:blank"></iframe>
-        <!-- Las manchas térmicas se pintan aquí -->
-        <canvas id="heatmapCanvas"></canvas>
+        <!-- El wrapper amarra el iframe y el canvas para que bajen juntos -->
+        <div class="scroll-wrapper" id="scrollWrapper">
+            <!-- scrolling="no" evita un doble scroll molesto -->
+            <iframe id="backgroundIframe" scrolling="no" src="about:blank"></iframe>
+            <canvas id="heatmapCanvas"></canvas>
+        </div>
     </div>
     <script>
         const SUPABASE_URL = 'https://tbhyzovkwpetnpyumblb.supabase.co';
