@@ -98,8 +98,10 @@
             const iframe = document.getElementById('backgroundIframe');
             const urlInput = document.getElementById('targetUrl');
 
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
+            const wrapper = document.getElementById('scrollWrapper');
+            canvas.width = wrapper.clientWidth;
+            canvas.height = wrapper.clientHeight;
+            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             try {
