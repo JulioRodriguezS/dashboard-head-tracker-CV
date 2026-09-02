@@ -103,9 +103,36 @@
             top: 0; left: 0; 
             z-index: 2; pointer-events: none; 
         }
+
+        /* Nuevos estilos para la pantalla de Login */
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0f172a; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .login-box {
+            background: #1e293b; padding: 40px; border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.4); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center; width: 400px;
+        }
+        .login-box input {
+            width: 100%; padding: 12px; margin: 20px 0;
+            border-radius: 8px; border: 1px solid #333; background: #0f172a; color: #fff;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
+    <!-- PANTALLA DE BLOQUEO (LOGIN) -->
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h2 style="margin-top:0; color: #38bdf8;">Autenticación Requerida</h2>
+            <p style="color: #9ca3af; font-size: 0.9rem;">Ingresa tu Service Role Key para acceder a las analíticas.</p>
+            <input type="password" id="secretKeyInput" placeholder="eyJhbGciOiJIUzI1...">
+            <button onclick="login()">Desbloquear Dashboard</button>
+        </div>
+    </div>
+    
     <div class="header-controls">
         <h2>Panel de Mapas de Calor y Analíticas</h2>
         <div class="controls-right">
@@ -146,7 +173,48 @@
             <canvas id="heatmapCanvas" class="heatmap-layer"></canvas>
         </div>
     </div>
-    
+    <script>
+        const SUPABASE_URL = 'https://tbhyzovkwpetnpyumblb.supabase.co';
+        let SUPABASE_KEY = ''; // ¡LA LLAVE ESTÁ VACÍA EN EL CÓDIGO FUENTE!
+        let chartInstance = null;
+
+        // Lógica de Autenticación
+        function checkAuth() {
+            const storedKey = sessionStorage.getItem('supabase_admin_key');
+            if (storedKey) {
+                SUPABASE_KEY = storedKey;
+                document.getElementById('loginOverlay').style.display = 'none';
+                renderDashboard(); // Arranca el sistema si hay llave
+            }
+        }
+
+        function login() {
+            const inputKey = document.getElementById('secretKeyInput').value.trim();
+            if (inputKey) {
+                sessionStorage.setItem('supabase_admin_key', inputKey);
+                SUPABASE_KEY = inputKey;
+                document.getElementById('loginOverlay').style.display = 'none';
+                renderDashboard();
+            } else {
+                alert("Por favor, ingresa una llave válida.");
+            }
+        }
+
+        async function renderDashboard() {
+            // Si por alguna razón llegan aquí sin llave, abortar
+            if(!SUPABASE_KEY) return; 
+            
+            await Promise.all([
+                renderKpis(),
+                renderHeatmap()
+            ]);
+        }
+
+        // ... (MANTÉN TUS FUNCIONES renderKpis, renderHeatmap y drawThermalPoint EXACTAMENTE IGUAL) ...
+
+        // Cambiamos el evento load para que primero revise la seguridad
+        window.addEventListener('load', checkAuth);
+    </script>
     <script>
         const SUPABASE_URL = 'https://tbhyzovkwpetnpyumblb.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRiaHl6b3Zrd3BldG5weXVtYmxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMDUxOTksImV4cCI6MjEwMzU4MTE5OX0._P132KIv3H6q7bYFXxrnfcyEoSUNabfnqjovO9SinLU'; // ¡Pega tu llave aquí!
