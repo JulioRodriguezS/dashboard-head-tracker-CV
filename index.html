@@ -174,17 +174,18 @@
         </div>
     </div>
     <script>
+        // 1. VARIABLES GLOBALES (¡La llave se queda vacía!)
         const SUPABASE_URL = 'https://tbhyzovkwpetnpyumblb.supabase.co';
-        let SUPABASE_KEY = ''; // ¡LA LLAVE ESTÁ VACÍA EN EL CÓDIGO FUENTE!
+        let SUPABASE_KEY = ''; 
         let chartInstance = null;
 
-        // Lógica de Autenticación
+        // 2. LÓGICA DE AUTENTICACIÓN
         function checkAuth() {
             const storedKey = sessionStorage.getItem('supabase_admin_key');
             if (storedKey) {
                 SUPABASE_KEY = storedKey;
                 document.getElementById('loginOverlay').style.display = 'none';
-                renderDashboard(); // Arranca el sistema si hay llave
+                renderDashboard(); // Arranca el sistema si hay llave en memoria
             }
         }
 
@@ -200,6 +201,7 @@
             }
         }
 
+        // 3. ORQUESTADOR PRINCIPAL
         async function renderDashboard() {
             // Si por alguna razón llegan aquí sin llave, abortar
             if(!SUPABASE_KEY) return; 
@@ -210,68 +212,33 @@
             ]);
         }
 
-        // ... (MANTÉN TUS FUNCIONES renderKpis, renderHeatmap y drawThermalPoint EXACTAMENTE IGUAL) ...
-
-        // Cambiamos el evento load para que primero revise la seguridad
-        window.addEventListener('load', checkAuth);
-    </script>
-    <script>
-        let chartInstance = null; // Para destruir la gráfica anterior al recargar
-        const SUPABASE_URL = 'https://tbhyzovkwpetnpyumblb.supabase.co';
-        let SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRiaHl6b3Zrd3BldG5weXVtYmxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMDUxOTksImV4cCI6MjEwMzU4MTE5OX0._P132KIv3H6q7bYFXxrnfcyEoSUNabfnqjovO9SinLU';
-        
-        // Función principal que orquesta todo el renderizado
-        async function renderDashboard() {
-            await Promise.all([
-                renderKpis(),
-                renderHeatmap()
-            ]);
-        }
-
+        // 4. RENDERIZADO DE KPIs (Gráfica y Tabla)
         async function renderKpis() {
             try {
-                // Leer datos de la tabla kpis ordenados por fecha más reciente
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/kpis?select=created_at,city,region,country_name,platform,vendor&order=created_at.desc`, {
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
                 });
                 const data = await response.json();
 
-                // 1. Llenar la Tabla (Top 20 visitas)
                 const tbody = document.getElementById('kpiTableBody');
                 tbody.innerHTML = data.slice(0, 20).map(row => {
                     const date = new Date(row.created_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
-                    // Filtrar nulos si hay bloqueadores de anuncios
                     const location = row.city ? `${row.city}, ${row.country_name}` : 'Ubicación oculta';
                     const device = row.platform ? row.platform : 'Desconocido';
-                    
-                    return `
-                        <tr>
-                            <td>${date}</td>
-                            <td>${location}</td>
-                            <td>${device}</td>
-                        </tr>
-                    `;
+                    return `<tr><td>${date}</td><td>${location}</td><td>${device}</td></tr>`;
                 }).join('');
 
-                // 2. Procesar datos para la Gráfica de Línea (Agrupación por día)
                 const visitsByDate = {};
                 data.forEach(row => {
-                    const dateObj = new Date(row.created_at);
-                    // Formato YYYY-MM-DD
-                    const dateStr = dateObj.toISOString().split('T')[0];
+                    const dateStr = new Date(row.created_at).toISOString().split('T')[0];
                     visitsByDate[dateStr] = (visitsByDate[dateStr] || 0) + 1;
                 });
                 
-                // Ordenar las fechas de menor a mayor
                 const labels = Object.keys(visitsByDate).sort();
                 const chartData = labels.map(date => visitsByDate[date]);
 
-                // 3. Renderizar la Gráfica
                 const ctxChart = document.getElementById('visitsChart').getContext('2d');
-                
-                if (chartInstance) {
-                    chartInstance.destroy(); // Limpiar gráfica si ya existía
-                }
+                if (chartInstance) chartInstance.destroy(); 
 
                 chartInstance = new Chart(ctxChart, {
                     type: 'line',
@@ -284,53 +251,40 @@
                             backgroundColor: 'rgba(56, 189, 248, 0.2)',
                             borderWidth: 2,
                             pointBackgroundColor: '#fff',
-                            tension: 0.4, // Curva suave
-                            fill: true
+                            tension: 0.4, fill: true
                         }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
+                        responsive: true, maintainAspectRatio: false,
                         scales: {
-                            y: { 
-                                beginAtZero: true, 
-                                ticks: { color: '#9ca3af', stepSize: 1, precision: 0 },
-                                grid: { color: 'rgba(51, 65, 85, 0.5)' }
-                            },
-                            x: { 
-                                ticks: { color: '#9ca3af' },
-                                grid: { display: false }
-                            }
+                            y: { beginAtZero: true, ticks: { color: '#9ca3af', stepSize: 1, precision: 0 }, grid: { color: 'rgba(51, 65, 85, 0.5)' } },
+                            x: { ticks: { color: '#9ca3af' }, grid: { display: false } }
                         },
-                        plugins: {
-                            legend: { display: false } // Ocultar leyenda para más limpieza
-                        }
+                        plugins: { legend: { display: false } }
                     }
                 });
-
             } catch (error) {
                 console.error('Error cargando KPIs:', error);
             }
         }
 
+        // 5. RENDERIZADO DEL MAPA DE CALOR
         async function renderHeatmap() {
             const canvas = document.getElementById('heatmapCanvas');
             const ctx = canvas.getContext('2d');
             const container = document.getElementById('canvasContainer');
             const iframe = document.getElementById('backgroundIframe');
             const urlInput = document.getElementById('targetUrl');
-
             const wrapper = document.getElementById('scrollWrapper');
+            
             canvas.width = wrapper.clientWidth;
             canvas.height = wrapper.clientHeight;
-            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/heatmap_data?select=url,screen_width,coordinates`, {
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
                 });
-                
                 const data = await response.json();
                 
                 if(data.length > 0 && data[0].url) {
@@ -348,16 +302,15 @@
                         });
                     }
                 });
-                
             } catch (error) {
                 console.error('Error de conexión con Supabase (Heatmap):', error);
             }
         }
 
+        // 6. DIBUJO DE PUNTOS TÉRMICOS
         function drawThermalPoint(ctx, x, y, type) {
             const radius = type === 'click' ? 18 : 35;
             const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-
             if (type === 'click') {
                 gradient.addColorStop(0, 'rgba(239, 68, 68, 0.9)');
                 gradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
@@ -365,15 +318,14 @@
                 gradient.addColorStop(0, 'rgba(56, 189, 248, 0.08)');
                 gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
             }
-
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
             ctx.fillStyle = gradient;
             ctx.fill();
         }
 
-        // Cargar los datos automáticamente al abrir el dashboard
-        window.addEventListener('load', renderDashboard);
-    </script>    
+        // 7. ARRANQUE DEL SISTEMA (Revisa seguridad en lugar de renderizar directo)
+        window.addEventListener('load', checkAuth);
+    </script>
 </body>
 </html>
