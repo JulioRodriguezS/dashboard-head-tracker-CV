@@ -217,7 +217,9 @@
     </script>
     <script>
         let chartInstance = null; // Para destruir la gráfica anterior al recargar
-
+        const SUPABASE_URL = 'https://tbhyzovkwpetnpyumblb.supabase.co';
+        let SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRiaHl6b3Zrd3BldG5weXVtYmxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMDUxOTksImV4cCI6MjEwMzU4MTE5OX0._P132KIv3H6q7bYFXxrnfcyEoSUNabfnqjovO9SinLU';
+        
         // Función principal que orquesta todo el renderizado
         async function renderDashboard() {
             await Promise.all([
